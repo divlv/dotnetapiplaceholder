@@ -24,16 +24,24 @@ jobs:
           dotnet-version: '8.x'
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build .\dotnetapiplaceholder.csproj --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+      - name: Publish to Application virtual directory layout
+        shell: pwsh
+        run: |
+          $publishRoot = Join-Path $env:GITHUB_WORKSPACE 'publish'
+          $applicationPath = Join-Path $publishRoot 'Application'
+          if (Test-Path $publishRoot) {
+            Remove-Item -LiteralPath $publishRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $applicationPath -Force | Out-Null
+          dotnet publish .\dotnetapiplaceholder.csproj -c Release -o $applicationPath
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ${{ github.workspace }}\publish
 
   deploy:
     runs-on: windows-latest
@@ -47,6 +55,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
+          path: publish
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -61,5 +70,5 @@ jobs:
         with:
           app-name: 'aegcavdsmmr1apiapp'
           slot-name: 'Production'
-          package: .
+          package: publish
           
