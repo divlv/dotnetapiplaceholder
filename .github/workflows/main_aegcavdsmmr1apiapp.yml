@@ -31,11 +31,14 @@ jobs:
         run: |
           $publishRoot = Join-Path $env:GITHUB_WORKSPACE 'publish'
           $applicationPath = Join-Path $publishRoot 'Application'
+          $servicesPath = Join-Path $publishRoot 'Services'
           if (Test-Path $publishRoot) {
             Remove-Item -LiteralPath $publishRoot -Recurse -Force
           }
           New-Item -ItemType Directory -Path $applicationPath -Force | Out-Null
+          New-Item -ItemType Directory -Path $servicesPath -Force | Out-Null
           dotnet publish .\dotnetapiplaceholder.csproj -c Release -o $applicationPath
+          Copy-Item -Path .\deploy\Services\* -Destination $servicesPath -Recurse -Force
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
