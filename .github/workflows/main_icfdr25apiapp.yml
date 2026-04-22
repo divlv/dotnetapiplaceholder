@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy ASP.Net Core app to Azure Web App - icfdr25apiapp
+name: 25Build and deploy ASP.Net Core app to Azure Web App - icfdr25apiapp
 
 on:
   push:
@@ -24,16 +24,30 @@ jobs:
           dotnet-version: '8.x'
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build .\dotnetapiplaceholder.csproj --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+      - name: Publish to Application virtual directory layout
+        shell: pwsh
+        run: |
+          $publishRoot = Join-Path $env:GITHUB_WORKSPACE 'publish'
+          $applicationPath = Join-Path $publishRoot 'Application'
+          $systemPath = Join-Path $publishRoot 'System'
+          $servicesPath = Join-Path $publishRoot 'Services'
+          if (Test-Path $publishRoot) {
+            Remove-Item -LiteralPath $publishRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $applicationPath -Force | Out-Null
+          New-Item -ItemType Directory -Path $systemPath -Force | Out-Null
+          New-Item -ItemType Directory -Path $servicesPath -Force | Out-Null
+          dotnet publish .\dotnetapiplaceholder.csproj -c Release -o $applicationPath
+          Copy-Item -Path (Join-Path $applicationPath '*') -Destination $systemPath -Recurse -Force
+          Copy-Item -Path .\deploy\Services\* -Destination $servicesPath -Recurse -Force
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ${{ github.workspace }}\publish
 
   deploy:
     runs-on: windows-latest
@@ -47,6 +61,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
+          path: publish
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -59,7 +74,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'icfdr25apiapp'
+          app-name: 'aegcavdsmmr1apiapp'
           slot-name: 'Production'
-          package: .
-          
+          package: publish      
+
